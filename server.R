@@ -1,16 +1,176 @@
 library(shiny)
+library(lubridate)
 
-VERSION = 'a0.1'
+VERSION = 'a0.2'
 
-DF_FILE <- '/rds/homes/r/rothcarv/covidtracker_surgery/20220106_shiny_ready.csv'
+get_shiny_data <- function() {
+  ############ defines
+  REFERENCE_FILE <- 'electiveactivity_5jan22.csv'
+  HOLIDAYS_FILE = '20220106_holidays_processed.csv'
+  YEAR_RANGE = c(2021, 2022)
+  FORMULA <- function(H__n_of_hospitalCases) {
+    return(0.8411886 *  (0.98515 ** (H__n_of_hospitalCases / 1000)))
+  }
+  PAGE <- "https://api.coronavirus.data.gov.uk/v2/data?areaType=nation&areaCode=E92000001&metric=hospitalCases&format=json"
+  ############
+  
+  
+  
+  # main data
+  df <- read.csv(REFERENCE_FILE, fileEncoding="UTF-8-BOM")
+  df <- df[!is.na(df$Month),]
+  df$last_date <- as.Date(df$Month, format="%d/%m/%Y")
+  df$year <- as.numeric(format(df$last_date, format="%Y"))
+  df$month <- as.numeric(format(df$last_date, format="%m"))
+  
+  # holidays
+  dfholidays <- read.csv(HOLIDAYS_FILE)
+  
+  # gov df
+  r <- httr::GET(PAGE)
+  r_content <- httr::content(r, type="application/json", encoding = "ISO-8859-1")
+  dfgov <- dplyr::bind_rows(r_content)
+  dfgov$date = as.Date(dfgov$date, format="%Y-%m-%d")
+  
+  assert <- function(cond, message) {
+    if(!cond) {
+      error(message)
+    }
+  }
+  
+  is_working_day <- function(d) {
+    if((as.POSIXlt(d)$wday > 0) & (as.POSIXlt(d)$wday < 6)) {
+      return(T)
+    }
+    return(F)
+  }
+  
+  is_holiday <- function(d) {
+    return(format(d, "%Y-%m-%d") %in% dfholidays$date)
+  }
+  
+  get_year_month_working_days <- function() {
+    # get number of working days per month
+    year <- vector()
+    month <- vector()
+    working_days <- vector()
+    
+    holidays_processed <- 0
+    
+    for(y in seq(YEAR_RANGE[1], YEAR_RANGE[2])) {
+      for(m in seq(1: 12)) {
+        e <- as.integer(lubridate::days_in_month(lubridate::ymd(paste(y, m, '01', sep="-"))))
+        
+        wd <- 0 # number of working days
+        
+        for(d in seq(lubridate::ymd(paste(y, m, '01', sep="-")), 
+                     lubridate::ymd(paste(y, m, e, sep="-")),
+                     "days")) {
+          d <- as.Date(d, origin='1970-01-01')
+          if(is_working_day(d)) {
+            if(is_holiday(d)) {
+              holidays_processed <- holidays_processed + 1
+            } else {
+              wd <- wd + 1
+            }
+          }
+        }
+        
+        year <- append(year, y)
+        month <- append(month, m)
+        working_days <- append(working_days, wd)
+      }
+    }
+    
+    assert(holidays_processed == nrow(dfholidays), "There were issues calculating the number of working days in the month, probably code error")
+    return(data.frame(year, month, working_days))
+  }
+  
+  dfworking_days <- get_year_month_working_days()
+  
+  df <- merge(df, 
+              dfworking_days,
+              by=c('year', 'month'),
+              all.x=T,
+              all.y=F)
+  
+  df$daily_expected <- df$Expected.volume/df$working_days
+  # intermediary calculations are here
+  
+  max_surgery <- max(df$last_date)
+  max_govdata <- max(dfgov$date)
+  
+  get_cum_cases <- function() {
+    cum_all_calc <- round(sum(df$Drop.from.expected.volume))
+    cum_from_december_first <- round(sum(df[df$last_date >= ymd('2021-12-1'), ]$Drop.from.expected.volume))
+    
+    year <- vector()
+    month <- vector()
+    day <- vector()
+    hosp_days <- vector()
+    expected_surg_day <- vector()
+    percent_op <- vector()
+    percent_op_red <- vector()
+    daily_cancellations <- vector()
+    cum_all <- vector()
+    cum_dec <- vector()
+    
+    for(d in seq(max_surgery + 1,
+                 max_govdata,
+                 "days")) {
+      d <- as.Date(d, origin='1970-01-01')
+      if(is_working_day(d)) {
+        if(is_holiday(d)) {
+          next
+        } else {
+          # get hospitalisation data from gov file
+          assert(nrow(dfgov[dfgov$date == d, ]) == 1, "Number of coronadata not equal to 1")
+          hospitalisations_day <- dfgov[dfgov$date == d, ]$hospitalCases
+          
+          # expected surgery number daily uses the estimate from previous year!!
+          assert(nrow(df[(df$month == lubridate::month(d)) & (df$year == lubridate::year(d) - 1), ]) == 1, "Number of daily surgeries not equal to 1")
+          expected_surgery_day <- df[(df$month == lubridate::month(d)) & (df$year == lubridate::year(d) - 1), ]$daily_expected
+          
+          # calculate other needed data
+          percent_operations <- FORMULA(hospitalisations_day)
+          percent_reduction_operations <- 1 - percent_operations
+          daily_rate_cancelations <- round(percent_reduction_operations * expected_surgery_day)
+          
+          cum_all_calc <- cum_all_calc + daily_rate_cancelations
+          cum_from_december_first <- cum_from_december_first + daily_rate_cancelations
+          
+          year <- append(year, lubridate::year(d))
+          month <- append(month, lubridate::month(d))
+          day <- append(day, lubridate::day(d))
+          hosp_days <- append(hosp_days, hospitalisations_day)
+          expected_surg_day <- append(expected_surg_day, expected_surgery_day)
+          percent_op <- append(percent_op, percent_operations)
+          percent_op_red <- append(percent_op_red, percent_reduction_operations)
+          daily_cancellations <- append(daily_cancellations, daily_rate_cancelations)
+          cum_all <- append(cum_all, cum_all_calc)
+          cum_dec <- append(cum_dec, cum_from_december_first)
+        }
+      }
+    }
+    return(data.frame(year, month, day, hosp_days, expected_surg_day, percent_op, percent_op_red, daily_cancellations, cum_all, cum_dec))
+  }
+  
+  complete_data <- get_cum_cases()
+  
+  complete_data$date = paste(complete_data$year, complete_data$month, complete_data$day, sep='-')
+  complete_data$date = lubridate::ymd(complete_data$date)
+  complete_data$formatted = format(complete_data$date, '%A, %d %B %Y')
+  
+  return(complete_data)
+}
+
 
 server <- function(input, output) {
-  df <- read.csv(DF_FILE)
+  df <- get_shiny_data()
   df$date <- as.Date(df$date, format = "%Y-%m-%d")
   mdate <- max(df$date)
   
   good_stuff <- df[df$date == mdate, ]
-  
   
   output$last_date <- renderText(paste0('Data updated on ', good_stuff$formatted))
   output$today_daily_cancellations <- renderText(round(good_stuff$daily_cancellations))

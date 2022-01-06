@@ -1,0 +1,6 @@
+## notes
+
+Elective activity file needs to be last day of month! Rather than Excel dec 2021 as 01/12/2021, it needs to be dec 2021 as 31/12/2021. Also save the file as csv and plug it in!
+In case this is used beyond 2022 it might be necessary to update holidays and other values.
+
+Check that the script is executing in the right folder.
