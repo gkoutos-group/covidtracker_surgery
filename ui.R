@@ -21,7 +21,7 @@ ui <- fluidPage(
             h1('Elective operations real time tracker for England'),
             HTML('This tracker estimates the daily reduction in the number of elective (planned) operations in England as a result of the COVID-19 pandemic.<br>These estimates are based on the number of COVID-19 patients in hospital in England each day. Full peer-reviewed methodology is available at <a href="http://www.thelancet.com/journals/lancet/article/PIIS0140-6736(21)02836-1/fulltext">The Lancet.</a>'),
             hr(),
-            textOutput('last_date'),
+            em(textOutput('last_date')),
             hr(),
             
             h2('Most recent daily estimates'),
