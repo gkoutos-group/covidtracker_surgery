@@ -27,32 +27,33 @@ ui <- fluidPage(
             h2('Most recent daily estimates'),
             fluidRow(
               column(width=10, HTML('Percentage reduction in elective surgery volume today compared to what would be expected based on pre-pandemic trends')),
-              column(width=2, textOutput('today_daily_cancellations'))),
+              column(width=2, strong(textOutput('today_perc_reductions')), align='center')
+            ),
             hr(),
             fluidRow(
               column(width=10, HTML('Drop in daily total for elective operations performed compared to what would be expected based on pre-pandemic trends')),
-              column(width=2, textOutput('today_perc_reductions'))),
-            HTML('<p style="font-size:-2"><i>This many fewer operations today than expected based on pre-pandemic trends</i></p>'),
+              column(width=2, strong(textOutput('today_daily_cancellations')), align='center')
+            ),
             hr(),
             
             h2('Running total for estimated reductions in elective surgery'),
             h3('Running total since 1 December 2021'),
             fluidRow(
               column(width=10, HTML('Drop in the number of elective operations performed since 1 December 2021 compared to what would be expected based on pre-pandemic trends')),
-              column(width=2, textOutput('running_total_dec_2021'))),
-            HTML('<p style="font-size:-2"><i>Running total for reduction in elective operations since 1 December 2021</i></p>'),
+              column(width=2, strong(textOutput('running_total_dec_2021')), align='center')
+              ),
             
             hr(),
             h3('Running total since 1 March 2020'),
             fluidRow(
               column(width=10, HTML('Drop in the number of elective operations performed since 1 March 2020 compared to what would be expected based on pre-pandemic trends')),
-              column(width=2, textOutput('running_total_march_2020'))),
-            HTML('<p style="font-size:-2"><i>Running total for reduction in elective operations since 1 March 2020</i></p>'),
+              column(width=2, strong(textOutput('running_total_march_2020')), align='center')
+              ),
             
             hr(),
             h2('Reference'),
-            HTML('Please reference this data as being based on this article:<br><b><i>COVIDSurg Collaborative. Projecting COVID-19 disruption to elective surgery. Lancet. 2021. Online ahead of print. DOI: https://doi.org/10.1016/S0140-6736(21)02836-1</i></b>'),
-            HTML('The article is available online at <a href="http://www.thelancet.com/journals/lancet/article/PIIS0140-6736(21)02836-1/fulltext">The Lancet</a>.'),
+            HTML('Please reference this data as being based on this article:<br><b><i>COVIDSurg Collaborative. Projecting COVID-19 disruption to elective surgery. Lancet. 2021. Online ahead of print.<br>DOI: https://doi.org/10.1016/S0140-6736(21)02836-1</i></b>'),
+            HTML('<br>The article is available online at <a href="http://www.thelancet.com/journals/lancet/article/PIIS0140-6736(21)02836-1/fulltext">The Lancet</a>.'),
             
             hr(),
             HTML('For further information, please <a href="mailto:d.nepogodiev@bham.ac.uk">email us</a>.'),
