@@ -3,7 +3,9 @@ library(lubridate)
 
 VERSION = 'a0.2'
 
-get_shiny_data <- function() {
+SHINY_READY <- '20220106_shiny_ready.csv'
+
+download_data <- function() {
   ############ defines
   REFERENCE_FILE <- 'electiveactivity_5jan22.csv'
   HOLIDAYS_FILE = '20220106_holidays_processed.csv'
@@ -13,7 +15,6 @@ get_shiny_data <- function() {
   }
   PAGE <- "https://api.coronavirus.data.gov.uk/v2/data?areaType=nation&areaCode=E92000001&metric=hospitalCases&format=json"
   ############
-  
   
   
   # main data
@@ -161,13 +162,29 @@ get_shiny_data <- function() {
   complete_data$date = lubridate::ymd(complete_data$date)
   complete_data$formatted = format(complete_data$date, '%A, %d %B %Y')
   
+  write.csv(SHINY_READY, row.names=FALSE)
   return(complete_data)
 }
 
+from_shiny_ready <- function() {
+  df <- read.csv(SHINY_READY)
+  df$date <- as.Date(df$date, format = "%Y-%m-%d")
+  return(df)
+}
+
+get_shiny_data <- function() {
+  df <- from_shiny_ready()
+  if(lubridate::today() == max(df$date)) {
+    print('From CSV')
+    return(df)
+  } else {
+    print('Downloaded')
+    return(download_data())
+  }
+}
 
 server <- function(input, output) {
   df <- get_shiny_data()
-  df$date <- as.Date(df$date, format = "%Y-%m-%d")
   mdate <- max(df$date)
   
   good_stuff <- df[df$date == mdate, ]
