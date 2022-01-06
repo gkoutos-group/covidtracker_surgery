@@ -16,7 +16,7 @@ GOVDATA_FILE = 'coronavirus.csv' # download daily
 OUTPUT_FILE = '20220106_shiny_ready.csv'
 
 def FORMULA(H__n_of_hospitalCases): # elective surgery rate
-    return 0.8412 * ( 0.9852 ** (H__n_of_hospitalCases / 1000) )
+    return 0.8411886 *  (0.98515 ** (H__n_of_hospitalCases / 1000))
 
 
 # In[2]:
