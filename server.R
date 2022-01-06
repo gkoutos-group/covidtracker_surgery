@@ -181,7 +181,8 @@ get_shiny_data <- function() {
   }
   
   df <- from_shiny_ready()
-  if(lubridate::today() == max(df$date)) {
+  tday <- lubridate::today()
+  if((tday == max(df$date)) | (is_holiday(tday)) | (!is_working_day(tday)) | (hour(lubridate::now()) < 12) ) {
     print('From CSV')
     return(df)
   } else {
