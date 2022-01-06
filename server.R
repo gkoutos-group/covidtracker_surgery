@@ -162,7 +162,9 @@ download_data <- function() {
   complete_data$date = lubridate::ymd(complete_data$date)
   complete_data$formatted = format(complete_data$date, '%A, %d %B %Y')
   
-  write.csv(SHINY_READY, row.names=FALSE)
+  write.csv(complete_data, 
+            file=SHINY_READY,
+            row.names=FALSE)
   return(complete_data)
 }
 
@@ -173,6 +175,11 @@ from_shiny_ready <- function() {
 }
 
 get_shiny_data <- function() {
+  if(!file.exists(SHINY_READY)) {
+    print('Downloaded')
+    return(download_data())
+  }
+  
   df <- from_shiny_ready()
   if(lubridate::today() == max(df$date)) {
     print('From CSV')
