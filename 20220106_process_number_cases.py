@@ -3,7 +3,7 @@
 
 # !jupyter nbconvert 20220106_process_number_cases.ipynb --to script
 
-# In[114]:
+# In[1]:
 
 
 REFERENCE_FILE = 'electiveactivity_5jan22.csv'
@@ -19,7 +19,7 @@ def FORMULA(H__n_of_hospitalCases): # elective surgery rate
     return 0.8412 * ( 0.9852 ** (H__n_of_hospitalCases / 1000) )
 
 
-# In[110]:
+# In[2]:
 
 
 import pandas as pd
@@ -28,36 +28,31 @@ from datetime import datetime, timedelta
 import calendar
 
 
-# In[81]:
+# In[3]:
 
 
 df = pd.read_csv(REFERENCE_FILE)
-df['last_date'] = pd.to_datetime(df['Month'])
+df = df[pd.notnull(df['Month'])]
+df['last_date'] = pd.to_datetime(df['Month'], format="%d/%m/%Y")
 df['year'] = df['last_date'].dt.year
 df['month'] = df['last_date'].dt.month
 
 
-# In[62]:
+# In[5]:
 
 
 dfholidays = pd.read_csv(HOLIDAYS_FILE)
 dfholidays['date'] = pd.to_datetime(dfholidays['date']).dt.strftime("%Y-%m-%d") # this will make things easier to process
 
 
-# In[47]:
+# In[6]:
 
 
 dfgov = pd.read_csv(GOVDATA_FILE)
 dfgov['date'] = pd.to_datetime(dfgov['date'])
 
 
-# In[41]:
-
-
-dfgov.head()
-
-
-# In[72]:
+# In[9]:
 
 
 # get number of working days per month
@@ -67,7 +62,7 @@ year_month_working_days = {'year': [],
 
 holidays_processed = 0
 
-for y in range(YEAR_RANGE[0], YEAR_RANGE[1]): # only 2021 and 2022
+for y in range(YEAR_RANGE[0], YEAR_RANGE[1]+1): # only 2021 and 2022
     for m in range(1, 13): # from 1 to 12
         _, e = calendar.monthrange(y, m) # first working day and last day of month
         wd = 0 # number of working days
@@ -86,7 +81,7 @@ assert holidays_processed == dfholidays.shape[0], "There were issues calculating
 dfworking_days = pd.DataFrame(year_month_working_days)
 
 
-# In[82]:
+# In[10]:
 
 
 df = df.merge(dfworking_days, 
@@ -100,14 +95,14 @@ df['daily_expected'] = df['Expected volume']/df['working_days']
 # - running total since December 1st 2021
 # - running total since March 1st 2020
 
-# In[76]:
+# In[11]:
 
 
 max_surgery = df['last_date'].max()
 max_govdata = dfgov['date'].max() ### change
 
 
-# In[111]:
+# In[12]:
 
 
 # cumulative total from df
@@ -166,7 +161,7 @@ for i in _els:
     assert i == max(_els), "number of data elements different in processed data"
 
 
-# In[123]:
+# In[13]:
 
 
 complete_data = pd.DataFrame(daily_data)
@@ -175,7 +170,7 @@ complete_data['date'] = pd.to_datetime(complete_data['date'], format="%Y-%m-%d")
 complete_data['formatted'] = complete_data['date'].dt.strftime('%A, %d %B %Y')
 
 
-# In[124]:
+# In[14]:
 
 
 complete_data.to_csv(OUTPUT_FILE, index=False)
