@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+# !jupyter nbconvert 20220106_process_number_cases.ipynb --to script
+
 # In[114]:
 
 
-REFERENCE_FILE = 'electiveactivity_5jan22.xlsx'
-REFERENCE_FILE_SHEET = 'Sheet1'
+REFERENCE_FILE = 'electiveactivity_5jan22.csv'
 
 HOLIDAYS_FILE = '20220106_holidays_processed.csv'
 YEAR_RANGE = [2021, 2022]
@@ -30,7 +31,7 @@ import calendar
 # In[81]:
 
 
-df = pd.read_excel(REFERENCE_FILE, sheet_name=REFERENCE_FILE_SHEET)
+df = pd.read_csv(REFERENCE_FILE)
 df['last_date'] = pd.to_datetime(df['Month'])
 df['year'] = df['last_date'].dt.year
 df['month'] = df['last_date'].dt.month
