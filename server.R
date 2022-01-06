@@ -3,29 +3,39 @@ library(lubridate)
 
 VERSION = 'a0.2'
 
+############ defines
 SHINY_READY <- '20220106_shiny_ready.csv'
+REFERENCE_FILE <- 'electiveactivity_5jan22.csv'
+HOLIDAYS_FILE = '20220106_holidays_processed.csv'
+YEAR_RANGE = c(2021, 2022)
+FORMULA <- function(H__n_of_hospitalCases) {
+  return(0.8411886 *  (0.98515 ** (H__n_of_hospitalCases / 1000)))
+}
+PAGE <- "https://api.coronavirus.data.gov.uk/v2/data?areaType=nation&areaCode=E92000001&metric=hospitalCases&format=json"
+############
+
+
+# holidays
+dfholidays <- read.csv(HOLIDAYS_FILE)
+
+is_working_day <- function(d) {
+  if((as.POSIXlt(d)$wday > 0) & (as.POSIXlt(d)$wday < 6)) {
+    return(T)
+  }
+  return(F)
+}
+
+is_holiday <- function(d) {
+  return(format(d, "%Y-%m-%d") %in% dfholidays$date)
+}
 
 download_data <- function() {
-  ############ defines
-  REFERENCE_FILE <- 'electiveactivity_5jan22.csv'
-  HOLIDAYS_FILE = '20220106_holidays_processed.csv'
-  YEAR_RANGE = c(2021, 2022)
-  FORMULA <- function(H__n_of_hospitalCases) {
-    return(0.8411886 *  (0.98515 ** (H__n_of_hospitalCases / 1000)))
-  }
-  PAGE <- "https://api.coronavirus.data.gov.uk/v2/data?areaType=nation&areaCode=E92000001&metric=hospitalCases&format=json"
-  ############
-  
-  
   # main data
   df <- read.csv(REFERENCE_FILE, fileEncoding="UTF-8-BOM")
   df <- df[!is.na(df$Month),]
   df$last_date <- as.Date(df$Month, format="%d/%m/%Y")
   df$year <- as.numeric(format(df$last_date, format="%Y"))
   df$month <- as.numeric(format(df$last_date, format="%m"))
-  
-  # holidays
-  dfholidays <- read.csv(HOLIDAYS_FILE)
   
   # gov df
   r <- httr::GET(PAGE)
@@ -37,17 +47,6 @@ download_data <- function() {
     if(!cond) {
       error(message)
     }
-  }
-  
-  is_working_day <- function(d) {
-    if((as.POSIXlt(d)$wday > 0) & (as.POSIXlt(d)$wday < 6)) {
-      return(T)
-    }
-    return(F)
-  }
-  
-  is_holiday <- function(d) {
-    return(format(d, "%Y-%m-%d") %in% dfholidays$date)
   }
   
   get_year_month_working_days <- function() {
