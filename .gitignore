@@ -1,4 +1,8 @@
 .ipynb_checkpoints
 *.xls
 *.xlsx
+*.bkp
 *shiny_ready.csv
+.Rproj.user
+.Rhistory
+day_check/

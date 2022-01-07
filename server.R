@@ -12,7 +12,43 @@ FORMULA <- function(H__n_of_hospitalCases) {
   return(0.8411886 *  (0.98515 ** (H__n_of_hospitalCases / 1000)))
 }
 PAGE <- "https://api.coronavirus.data.gov.uk/v2/data?areaType=nation&areaCode=E92000001&metric=hospitalCases&format=json"
+PATH_UPDATE_CONTROL <- 'day_check/' # folder for stopping multiple daily checks for new data
 ############
+
+dprint <- function(e) {
+  if(F) {
+    print(e)
+  }
+}
+
+assert <- function(cond, message) {
+  if(!cond) {
+    error(message)
+  }
+}
+
+# folder for update control
+dir.create(file.path(PATH_UPDATE_CONTROL), showWarnings = FALSE)
+was_today_evaluated <- function(d) {
+  d <- format(d, '%Y-%m-%d')
+  
+  day_file <- file.path(PATH_UPDATE_CONTROL, d)
+  if(!file.exists(day_file)) {
+    return(F)
+  } else {
+    return(T)
+  }
+}
+
+set_today_evaluated <- function(d) {
+  d <- format(d, '%Y-%m-%d')
+  
+  day_file <- file.path(PATH_UPDATE_CONTROL, d)
+  
+  x <- data.frame()
+  write.table(x, file=day_file, col.names=FALSE)
+}
+
 
 
 # holidays
@@ -41,13 +77,9 @@ download_data <- function() {
   r <- httr::GET(PAGE)
   r_content <- httr::content(r, type="application/json", encoding = "ISO-8859-1")
   dfgov <- dplyr::bind_rows(r_content)
-  dfgov$date = as.Date(dfgov$date, format="%Y-%m-%d")
+  assert(nrow(dfgov) > 1, "No data collected from UK gov!")
   
-  assert <- function(cond, message) {
-    if(!cond) {
-      error(message)
-    }
-  }
+  dfgov$date = as.Date(dfgov$date, format="%Y-%m-%d")
   
   get_year_month_working_days <- function() {
     # get number of working days per month
@@ -174,19 +206,37 @@ from_shiny_ready <- function() {
 }
 
 get_shiny_data <- function() {
+  # if no data exists download it
   if(!file.exists(SHINY_READY)) {
-    print('Downloaded')
+    dprint('Downloaded')
     return(download_data())
   }
   
+  # if data exists:
   df <- from_shiny_ready()
   tday <- lubridate::today()
-  if((tday == max(df$date)) | (is_holiday(tday)) | (!is_working_day(tday)) | (hour(lubridate::now()) < 12) ) {
-    print('From CSV')
+  if(tday == max(df$date)) { # if data is from today
+    dprint('From CSV')
     return(df)
   } else {
-    print('Downloaded')
-    return(download_data())
+    # check if any working day between data and today
+    wd <- 0
+    for(d in seq(max(df$date) + 1,
+                 tday,
+                 "days")) {
+      d <- as.Date(d, origin='1970-01-01')
+      if(!is_holiday(d) & is_working_day(d)) {
+        wd <- wd + 1
+      }
+    }
+    if(was_today_evaluated(tday) | ((wd == 1) & (hour(lubridate::now()) < 16))) {
+      dprint('From CSV')
+      return(df)
+    } else {
+      dprint('Downloaded')
+      set_today_evaluated(tday)
+      return(download_data())
+    }
   }
 }
 
