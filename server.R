@@ -229,7 +229,7 @@ get_shiny_data <- function() {
         wd <- wd + 1
       }
     }
-    if(was_today_evaluated(tday) | ((wd == 1) & (hour(lubridate::now()) < 16))) {
+    if(was_today_evaluated(tday) | (wd == 0) | ((wd == 1) & (hour(lubridate::now()) < 16))) {
       dprint('From CSV')
       return(df)
     } else {
