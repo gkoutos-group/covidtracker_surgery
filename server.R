@@ -29,8 +29,9 @@ assert <- function(cond, message) {
 
 # folder for update control
 dir.create(file.path(PATH_UPDATE_CONTROL), showWarnings = FALSE)
-was_today_evaluated <- function(d) {
-  d <- format(d, '%Y-%m-%d')
+was_evaluated <- function() {
+  d <- lubridate::now()
+  d <- format(d, '%Y-%m-%d-%H')
   
   day_file <- file.path(PATH_UPDATE_CONTROL, d)
   if(!file.exists(day_file)) {
@@ -40,8 +41,9 @@ was_today_evaluated <- function(d) {
   }
 }
 
-set_today_evaluated <- function(d) {
-  d <- format(d, '%Y-%m-%d')
+set_evaluated <- function() {
+  d <- lubridate::now()
+  d <- format(d, '%Y-%m-%d-%H')
   
   day_file <- file.path(PATH_UPDATE_CONTROL, d)
   
@@ -229,12 +231,12 @@ get_shiny_data <- function() {
         wd <- wd + 1
       }
     }
-    if(was_today_evaluated(tday) | (wd == 0) | ((wd == 1) & (hour(lubridate::now()) < 16))) {
+    if(was_evaluated() | (wd == 0) | ((wd == 1) & (hour(lubridate::now()) < 16))) {
       dprint('From CSV')
       return(df)
     } else {
       dprint('Downloaded')
-      set_today_evaluated(tday)
+      set_evaluated()
       return(download_data())
     }
   }
